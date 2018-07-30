@@ -1,0 +1,382 @@
+{% extends "userbase.html" %}
+{% load admin_urls %}
+{% load bootstrap3 %}
+{% load staticfiles %}
+{% block title %}Dashboard{% endblock %}
+{% block extraHeader %}
+
+
+
+
+{% endblock %}
+
+{% block content %}
+    <style type="text/css">
+    input[type="file"]{
+    color: transparent;
+}
+     #pageno {
+    font-weight: italic;
+        font-size: 15px;
+         color: blue;
+
+         padding:3px 3px;
+    }
+    .nextpage {
+    background-color: #008CBA;
+    border: none;
+    color: white;
+    padding: 9px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 25px;
+}
+
+    }
+       </style>
+    <div id="page-wrapper" class="white-bg" style="color:black;">
+        <div class="jumbotron">
+            <div class="container" style="background-color: #f3f3f4">
+                <h2><b>Software Manager</b></h2>
+
+                <p>Use this page to upload your files that will be used to test Delta Compression algorithms.</p>
+            </div><!-- /.container -->
+        </div><!-- /.jumbotron -->
+
+        {% csrf_token %}
+        <div style="width: 50%; float:right">
+            <h4 style="background-color:grey; text-align: center; padding: 5px; width: 98%; " >AVAILABLE FILES</h4>
+            <div id="dynamictable" class="table-responsive"></div>
+            <span id="pageno">Page</span>
+
+            <a href="javascript:prevPage()" id="btn_prev" class="nextpage"> Prev</a>
+            <a href="javascript:nextPage()" id="btn_next" class="nextpage">Next </a>
+        </div>
+
+        <div style="width: 50%; float:left">
+            <h4 style="background-color:grey; text-align: center; padding: 5px; width: 98%;" >UPLOAD NEW FILE</h4>
+            <label for="name">File Name : </label>
+               <input id="name" type="text" name="name" /><br><br>
+            <label for="version">Version : </label>
+            <input id="version" type="text" name="version" style="margin-left:16px;"/><br><br>
+
+            <input id="software_upload" type="file" name="the_file" title='  '/>
+            <button id="up_btn" >Upload</button>
+            <input id="init_data" type="hidden" value = "{{init_data}}" />
+            <input id="type" type="hidden" value = "{{type}}" />
+
+            <p id="progress"></p>
+
+            <div id="myProgress">
+              <div id="myBar"></div>
+            </div>
+
+            <div id="messages"></div>
+
+
+        </div>
+
+    </div><!-- /.container -->
+
+
+
+    <script type="text/javascript">
+
+
+var current_page = 1;
+var records_per_page = 5;
+var objJson = null
+var count=1;
+var decr = 0;
+var last_count = 1;
+function prevPage()
+{
+    if (current_page > 1) {
+        current_page--;
+        changePage(current_page);
+    }
+}
+
+function nextPage()
+{
+    if (current_page < numPages()) {
+        current_page++;
+
+        changePage(current_page);
+    }
+}
+
+function changePage(pagenum)
+{
+      current_page =   pagenum;
+    var btn_next = document.getElementById("btn_next");
+    var btn_prev = document.getElementById("btn_prev");
+    var page_span = document.getElementById("pageno");
+    // Validate page
+    if (current_page < 1) current_page = 1;
+    if (current_page > numPages()) current_page = numPages();
+    $('#dynamictable').empty()
+     $('#dynamictable').append('<table class=" table-hover" border="1"></table>');
+                            var table = $('#dynamictable').children();
+
+                            table.append("<tr><th>S.No</th><th>ID</th><th>Title</th><th>Version</th><th>Size</th><th>Created On</th><th></th></tr>");
+    if( ! objJson.length ) {
+          btn_prev.style.visibility = "hidden";
+          btn_next.style.visibility = "hidden";
+          page_span.style.visibility = "hidden";
+          return false;
+    }
+    for (var i = (current_page-1) * records_per_page; i < (current_page * records_per_page) && i < objJson.length; i++)
+     {
+         serial = i+1
+         table.append("<tr><td>"+serial+"</td><td>"+objJson[i].id+"</td><td>"+objJson[i].title+"</td><td>"+objJson[i].version+"</td><td>"+humanFileSize(objJson[i].file_size)+"</td><td>"+objJson[i].created+"</td><td>"+"<button id="+objJson[i].id+" class=" +"delbtn" +" onclick = "+'delete_row(this)'+">delete</button>"+"</td></tr>");
+
+
+
+
+
+     }
+
+    page_span.innerHTML = "Page "+current_page;
+
+
+    if (current_page == 1) {
+        btn_prev.style.visibility = "hidden";
+
+    } else {
+        btn_prev.style.visibility = "visible";
+    }
+
+    if (current_page == numPages()) {
+        btn_next.style.visibility = "hidden";
+    } else {
+        btn_next.style.visibility = "visible";
+    }
+}
+
+function numPages()
+{
+
+    return Math.ceil(objJson.length / records_per_page);
+}
+
+
+
+
+        function delete_row(obj){
+         id = obj.id
+            $.ajax({
+                    type: "POST",
+                    url: "{% url 'delete_file' %}",
+                    data: {
+                        csrfmiddlewaretoken: csrf,
+                        job_id: id,
+                        },
+                    dataType: "json",
+                    success: function (data) {
+                        $(dynamictable).empty();
+                        objJson = data;
+                        changePage(1);
+
+                    },
+                    error: function (request, error) {
+                        console.log(arguments);
+                        alert(" Can't do because: " + error);
+                    },
+            });
+        }
+
+        type = document.getElementById('type').value;
+        if (type == "initial"){
+            init_data = document.getElementById('init_data').value;
+
+            out_data = eval(init_data);
+            document.getElementById('software_upload').value = "";
+            objJson = out_data;
+                        changePage(1);
+
+        }
+
+
+       var md5 = "",
+        csrf = $("input[name='csrfmiddlewaretoken']")[0].value,
+        form_data = [{"name": "csrfmiddlewaretoken", "value": csrf}];
+
+        function calculate_md5(file, chunk_size) {
+            var slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
+                    chunks = chunks = Math.ceil(file.size / chunk_size),
+                    current_chunk = 0,
+                    spark = new SparkMD5.ArrayBuffer();
+            window.file_size = file.size;
+            function onload(e) {
+                spark.append(e.target.result);  // append chunk
+                current_chunk++;
+                if (current_chunk < chunks) {
+                    read_next_chunk();
+                } else {
+                    md5 = spark.end();
+                }
+            };
+
+            function read_next_chunk() {
+                var reader = new FileReader();
+                reader.onload = onload;
+                var start = current_chunk * chunk_size,
+                        end = Math.min(start + chunk_size, file.size);
+                reader.readAsArrayBuffer(slice.call(file, start, end));
+            };
+            read_next_chunk();
+            }
+
+            function humanFileSize(size) {
+                var i = Math.floor( Math.log(size) / Math.log(1024) );
+                return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+            };
+
+        //function start(){
+
+        $("#software_upload").fileupload({
+            url: "{% url 'api_chunked_upload' %}",
+            dataType: "json",
+            maxChunkSize: 256000, // Chunks of 100 kB
+            formData: form_data,
+            add: function (e, data) {
+                // Called before starting upload
+                flag = 2;
+                 filename = document.getElementById('name').value;
+                                uploadedfile = data.files[0].name;
+
+
+         version = document.getElementById('version').value;
+         if (! filename ||  ! version ) {
+           alert("please select File name or the version");
+           return false
+         }
+        if (form_data[1]) {
+            form_data.splice(1, 1);
+        }
+        $.ajax({
+			url:'verify_duplicate_file/',
+			data:{},
+			async:false,
+			success: function(output) {
+
+				filelist = eval("("+output+")");
+
+                    var titles = filelist[0];
+                    var filenames = filelist[1];
+
+                 if (titles == undefined){alert("No Files Uploaded!!!");}
+				else{
+					var titles = jQuery.unique(titles);
+					for(var i = 0; i < titles.length; i++) {
+
+						 if ( titles[i] == filename ) {
+						     flag =1;
+
+                          }
+					}
+
+
+				}
+
+				if (filenames == undefined){alert("No Files Uploaded!!!");}
+                else{
+                    var filenames = jQuery.unique(filenames);
+                    for(var i = 0; i < filenames.length; i++) {
+                         if ( filenames[i] == uploadedfile ) {
+                            if (flag != 1) {
+                                flag =3;
+                            }
+                          }
+                    }
+                 }
+			}
+		});//ajax close
+		        if (flag == 1) {
+		         alert("File Title already exist, Please choose a new File Title");
+		         data.data = null ;
+		         return false;
+		         }
+                else if (flag == 3) {
+		         alert("File already exist in uploaded list, Please upload a new file");
+		         data.data = null ;
+		         return false;
+		         }
+
+                $("#messages").empty();
+                // If this is the second file you're uploading we need to remove the
+                // old upload_id and just keep the csrftoken (which is always firstop0-=
+                calculate_md5(data.files[0], 100000);  // Again, chunks of 100 kB
+                $("#up_btn").off('click').on('click', function () {
+                       filename = document.getElementById('name').value;
+                       version = document.getElementById('version').value;
+
+                      if (! filename ||  ! version ) {
+                            alert("please select File name or the version");
+                            return false
+                       }
+                      if (flag == 1) {
+                      data.abort();
+                     }
+                      else {
+                      data.submit();
+                      }
+                });
+            },
+            chunkdone: function (e, data) { // Called after uploading each chunk
+                if (form_data.length < 2) {
+                    form_data.push(
+                            {"name": "upload_id", "value": data.result.upload_id}
+                    );
+                }
+
+                var elem = document.getElementById("myBar");
+                var progress = parseInt(data.loaded / data.total * 100.0, 10);
+                elem.style.width = progress + "%";
+
+                //var progress = parseInt(data.loaded / data.total * 100.0, 10);
+               // $("#progress").text(Array(progress).join("=") + "> " + progress + "%");
+
+
+            },
+            done: function (e, data) { // Called when the file has completely uploaded
+                $.ajax({
+                    type: "POST",
+                    url: "{% url 'api_chunked_upload_complete' %}",
+                    data: {
+                        csrfmiddlewaretoken: csrf,
+                        upload_id: data.result.upload_id,
+                        md5: md5,
+                        name : document.getElementById('name').value,
+                        version: document.getElementById('version').value,
+                        size: file_size,
+                        },
+                     dataType: "json",
+                     success: function (data) {
+                             document.getElementById('name').value = "";
+                             document.getElementById('version').value = "";
+                             document.getElementById('software_upload').value = "";
+
+                            var elem = document.getElementById("myBar");
+                            elem.style.width = 100+"%";
+                            $("#messages").append($('<p>').text(JSON.stringify(data.message)));
+
+                            $(dynamictable).empty();
+                            out_data = data.output_list;
+                            objJson = out_data;
+                            changePage(1);
+                            data.data = null;
+
+                     }
+                });
+              },
+        });
+
+
+    </script>
+{% endblock %}

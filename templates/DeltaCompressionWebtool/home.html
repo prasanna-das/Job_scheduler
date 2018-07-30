@@ -1,0 +1,30 @@
+{% extends "userbase.html" %}
+{% load bootstrap3 %}
+{% block title %}Advance Adapative Automotive Delta Compression Technology Demo{% endblock %}
+
+
+{% block content %}
+
+    <div id="page-wrapper" class="gray-bg">
+        <div class="jumbotron">
+                {% if user.is_authenticated %}
+                    <h2>Dashboard</h2>
+                    <p class="lead">Welcome, {{ user.get_full_name }}.</p>
+
+                {% else %}
+                    <p class="lead">Please Log In to access the Demo.</p>
+                    <p>
+                        &nbsp;
+                        <a class="btn btn-lg btn-success"
+                           href="{% url 'django.contrib.auth.views.login' %}">Sign in</a>
+                    </p>
+                {% endif %}
+            </div> <!-- /.container -->
+        </div> <!-- /.jumbotron -->
+        {% if user.is_authenticated %}
+            <div class="container">
+
+            </div>
+        {% endif %}
+    </div> <!-- /.container -->
+{% endblock content %}

@@ -1,0 +1,11 @@
+{% extends "userbase.html" %}
+{% load bootstrap3 %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div id="page-wrapper" class="gray-bg">
+</br>  <p class="lead">You are now logged out.</p>
+  <p><a href="{% url 'home' %}">Sign In</a></p>
+</div>
+{% endblock %}

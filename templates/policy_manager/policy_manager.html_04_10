@@ -1,0 +1,286 @@
+{% extends "userbase.html" %}
+{% load admin_urls %}
+{% load bootstrap3 %}
+{% load staticfiles %}
+{% block title %}Dashboard{% endblock %}
+{% block extraHeader %}
+{% endblock %}
+
+{% block content %}
+
+
+<div id="page-wrapper" class="white-bg" style="color:black;">
+        <div class="jumbotron">
+            <div class="container" style="background-color: #f3f3f4">
+                <h2><b>Policy Manager</b></h2>
+                <h2><b></b></h2>
+                 <p>Use this page to upload your files that will be used to test Delta Compression algorithms.</p>
+            </div><!-- /.container -->
+        </div><!-- /.jumbotron -->
+
+        {% csrf_token %}
+        <div style="width: 60%; float:left;">
+            <form id="policyForm" action="/create_policy/">
+            {% csrf_token %}
+            <h3>Select Severity</h3>
+            Severity: <select name="severity" id="severity" form="policyForm">
+                      <option disabled selected>-- Select severity --</option>
+                      <option value="High" onclick="disable_options(this)">High</option>
+                      <option value="Custom"  onclick="disable_others()">Custom</option>
+                      <option value="Low" onclick="disable_options(this)">Low</option>
+                    </select></br></br><hr>
+            <h3>Priority</h3>
+            Size: <select name="size" id="size" form="policyForm">
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                    </select><br>
+            Reconstruction Time: <select name="reconstruction_time"  id="reconstruction_time" form="policyForm">
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                    </select><br>
+            Patch Time: <select name="patch_time" id="patch_time" form="policyForm">
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                    </select><br>
+            <input type="submit" value="Create Policy" onclick="submit_form()"/>
+            <input id="init_data" type="hidden" value = "{{init_data}}" />
+            <input id="type" type="hidden" value = "{{type}}" />
+            </form>
+
+        </div>
+        <div style="width: 80%; float:left">
+            <h4 style="background-color:grey; text-align: center; padding: 5px; width: 98%; " >LIST OF POLICIES CREATED</h4>
+            <div id="dynamictable" ></div>
+
+        </div>
+</div>
+
+<script type="text/javascript">
+
+    csrf = $("input[name='csrfmiddlewaretoken']")[0].value;
+
+    type = document.getElementById('type').value;
+    if (type == "initial"){
+        init_data = document.getElementById('init_data').value;
+        $('#dynamictable').append('<table class="table table-striped table-bordered table-hover"  id="policy_table"  cellspacing="0" width="100%" ></table>');
+        var table = $('#dynamictable').children();
+        out_data = eval(init_data);
+        var count = 1;
+        table.append("<thead><tr><th>S.No</th><th>ID</th><th>Date</th><th>Severity</th><th>Size</th><th>Reconstruction Time</th><th>Patch Time</th><th></th></tr></thead><tbody>");
+        $.each(out_data, function(){
+            table.append("<tr id="+this.policy_id+"><td>"+count+"</td><td>"+this.policy_id+"</td><td>"+this.date+"</td><td>"+this.severity+"</td><td>"+this.size+"</td><td>"+this.reconstruction_time+"</td><td>"+this.patch_time+"</td><td>"+"<button id="+this.policy_id+" class=" +"delbtn" +" onclick = 'delete_row(this)'>delete</button>"+"</td></tr>");
+           count++;
+        });
+        table.append("</tbody>");
+        dataobj = table.DataTable();
+
+    }
+
+    function delete_row(event){
+            id = $(event).attr('id');
+            $.ajax({
+                    type: "POST",
+                    url: "{% url 'delete_policy' %}",
+                    data: {
+                        csrfmiddlewaretoken: csrf,
+                        policy_id: id,
+                        },
+                    dataType: "json",
+                    success: function (data) {
+                        <!--$(dynamictable).empty();-->
+                        <!--$('#dynamictable').append('<table></table>');-->
+                        <!--var table = $('#dynamictable').children();-->
+                        <!--out_data = data;-->
+                        <!--var count = 1;-->
+                        <!--table.append("<tr><th>S.No</th><th>ID</th><th>Date</th><th>Severity</th><th>Size</th><th>Reconstruction Time</th><th>Patch Time</th><th></th></tr>");-->
+                        <!--$.each(out_data, function(){-->
+                            <!--table.append("<tr id="+this.policy_id+"><td>"+count+"</td><td>"+this.policy_id+"</td><td>"+this.date+"</td><td>"+this.severity+"</td><td>"+this.size+"</td><td>"+this.reconstruction_time+"</td><td>"+this.patch_time+"</td><td>"+"<button id="+this.policy_id+" class=" +"delbtn" +" onclick = 'delete_row(this)'>delete</button>"+"</td></tr>");-->
+                           <!--count++;-->
+                        <!--});-->
+                        dataobj.rows('tr#'+id).remove().draw();
+                    },
+                    error: function (request, error) {
+                        console.log(arguments);
+                        alert(" Can't do because: " + error);
+                    },
+            });
+        }
+
+    function disable_options(sel){
+        var selected = sel.value;
+         if(! check_existing_policy()) {
+                    return false ;
+          }
+        if (selected == "Low") {
+            alert("Priorities set by default:\n Size: 1\n Reconstruction Time: 2\n Patch Time: 3")
+            document.getElementById("size").value = 1;
+            document.getElementById("reconstruction_time").value = 2;
+            document.getElementById("patch_time").value = 3;
+            var postData = $("#policyForm").serializeArray();
+        }
+        else if(selected == "High") {
+            alert("Priorities set by default:\n Size: 0\n Reconstruction Time: 0\n Patch Time: 0")
+            document.getElementById("size").value = 0;
+            document.getElementById("reconstruction_time").value = 0;
+            document.getElementById("patch_time").value = 0;
+            csrf = $("input[name='csrfmiddlewaretoken']")[0].value;
+            var postData = {'csrfmiddlewaretoken': csrf,'severity': selected,'size': 0,'reconstruction_time': 0,'patch_time': 0}
+        }
+
+        var formURL = $("#policyForm").attr("action");
+        $.ajax(
+                {
+                    url: formURL,
+                    type: "POST",
+                    data: postData,
+                    success: function (data, textStatus, jqXHR) {
+                        $(dynamictable).empty();
+                        $('#dynamictable').append('<table></table>');
+                        var table = $('#dynamictable').children();
+                        out_data = eval(data);
+                        var count = 1;
+                        table.append("<tr><th>S.No</th><th>ID</th><th>Date</th><th>Severity</th><th>Size</th><th>Reconstruction Time</th><th>Patch Time</th><th></th></tr>");
+                        $.each(out_data, function(){
+                            table.append("<tr id="+this.policy_id+"><td>"+count+"</td><td>"+this.policy_id+"</td><td>"+this.date+"</td><td>"+this.severity+"</td><td>"+this.size+"</td><td>"+this.reconstruction_time+"</td><td>"+this.patch_time+"</td><td>"+"<button id="+this.policy_id+" class=" +"delbtn" +" onclick = 'delete_row(this)'>delete</button>"+"</td></tr>");
+                           count++;
+                        });
+                    },
+
+                });
+
+
+    }
+
+    function disable_others() {
+        var $selects = $('select');
+        $selects.on('change', function () {
+            $("option", $selects).prop("disabled", false);
+            $selects.each(function () {
+                var $select = $(this),
+                $options = $selects.not($select).find('option'),
+                selectedText = $select.children('option:selected').text();
+                $options.each(function () {
+                    if ($(this).text() == selectedText) $(this).prop("disabled", true);
+                });
+            });
+        });
+
+        $selects.eq(0).trigger('change');
+    }
+
+    function submit_form(){
+            $("#policyForm").submit(function(e)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                var e = document.getElementById("severity");
+                var severity_value = e.options[e.selectedIndex].value;
+                severity_list=["High","Custom","Low"];
+                if ( severity_list.indexOf(severity_value) == -1){
+
+                   alert("Please select the severity ");
+                   return false;
+                }
+                if(! check_existing_policy()) {
+                    return false ;
+                }
+
+                var postData = $(this).serializeArray();
+                var formURL = $(this).attr("action");
+                $.ajax(
+                {
+                    url : formURL,
+                    type: "POST",
+                    data : postData,
+                    success:function(data, textStatus, jqXHR)
+                    {
+                       $(dynamictable).empty();
+                        $('#dynamictable').append('<table></table>');
+                        var table = $('#dynamictable').children();
+                        out_data = eval(data);
+                        var count = 1;
+                        table.append("<tr><th>S.No</th><th>ID</th><th>Date</th><th>Severity</th><th>Size</th><th>Reconstruction Time</th><th>Patch Time</th><th></th></tr>");
+                        $.each(out_data, function(){
+                            table.append("<tr id="+this.policy_id+"><td>"+count+"</td><td>"+this.policy_id+"</td><td>"+this.date+"</td><td>"+this.severity+"</td><td>"+this.size+"</td><td>"+this.reconstruction_time+"</td><td>"+this.patch_time+"</td><td>"+"<button id="+this.policy_id+" class=" +"delbtn" +" onclick = 'delete_row(this)'>delete</button>"+"</td></tr>");
+                           count++;
+                        });
+                        window.location.reload(true)
+                    },
+                    error: function (request, error) {
+                        console.log(arguments);
+                        alert(" Can't do because: " + error);
+                    },
+
+                });
+
+            });
+    }
+
+    function check_existing_policy() {
+         var selected =  document.getElementById("severity").value;
+         if (selected == "Low") {
+            var size_val = 1;
+            var reconstruction_time_value = 2;
+            var patch_time_value = 3;
+        }
+        else if(selected == "High") {
+             var size_val = 0;
+            var reconstruction_time_value = 0;
+            var patch_time_value = 0;
+
+        }
+        else {
+                var size_val = document.getElementById("size").value;
+                var reconstruction_time_value = document.getElementById("reconstruction_time").value;
+                var patch_time_value = document.getElementById("patch_time").value;
+            if( size_val == 1  && reconstruction_time_value == 1 && patch_time_value == 1)
+             {
+                 var size_val = 2;
+                 var reconstruction_time_value = 1;
+                  var patch_time_value = 3;
+             }
+             <!--{-->
+
+                <!--var size_val = document.getElementById("size").value;-->
+                <!--var reconstruction_time_value = document.getElementById("reconstruction_time").value;-->
+                <!--var patch_time_value = document.getElementById("patch_time").value;-->
+            <!--}-->
+        }
+        $.ajax(
+        {
+            url : "{% url 'is_policy_exist' %}",
+            type: "POST",
+            async : false,
+            data :  {
+                csrfmiddlewaretoken: csrf,
+                size: size_val,
+                reconstruction_time: reconstruction_time_value,
+                patch_time: patch_time_value,
+
+                },
+            success:function(data, textStatus, jqXHR)
+            {
+
+                if (data == 1) {
+                  alert("policy  exist; Create new policy");
+                  policy_exist = false;
+                }
+                else if (data == 2) {
+                  alert("Maximum no of policies are created, Choose  policy from list of policies created");
+                  policy_exist = false;
+                }
+                else {
+                 policy_exist = true;
+                 }
+
+            }
+        });
+        <!--alert(policy_exist);-->
+        return policy_exist;
+     }
+
+</script>
+{% endblock %}

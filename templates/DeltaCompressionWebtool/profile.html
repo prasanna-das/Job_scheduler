@@ -1,0 +1,62 @@
+{% extends "userbase.html" %}
+{% load admin_urls %}
+{% load bootstrap3 %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+
+<div id="page-wrapper" class="gray-bg" xmlns="http://www.w3.org/1999/html">
+  <h2>Profile</h2>
+  <!-- <h3>{{ user.get_username }}</h3> -->
+    {% if profileinst.firstname or profileinst.lastname %}
+         <p>{{ profileinst.firstname |default_if_none:""}}&nbsp{{ profileinst.lastname |default_if_none:""}}</p>
+    {% else %}
+          <p>None</p>
+    {% endif %}
+
+  <p><a href="{% url 'django.contrib.auth.views.password_change' %}">Change password</a></p>
+ {% if form.errors %}
+        <p style="color:red;">
+            Please correct the error{{ form.errors|pluralize }} below.
+        </p>
+    {% endif %}
+  <form action="{% url 'userprofile.views.profile' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <img src='{{ profileinst.photo.url }}'  width=25% height= 25% class='img-responsive' />
+    <p><label for="id_photo">Profile Photo</label>  <a href="/media/userprofile/userphoto/no-image-icon-hi.png">
+    </a> <br> <input type="file" name="photoname" id="id_photo"></p>
+      <input type="button" id="button" onclick="location.href='/DeleteImage';" value="Delete image" /><br><br>
+    <div>
+
+    <label for="Firstname">First name : </label>
+    <input id="firstnameid" type="text" name="firstname" value='{{ profileinst.firstname |default_if_none:""}}'/><br><br>
+    <label for="lastname">Last name : </label>
+    <input id="lastnameid" type="text" name="lastname"  value='{{ profileinst.lastname |default_if_none:""}}'/><br><br>
+      <input type="submit" value="Update" />
+
+  </form>
+</div>
+</div>
+    <script type="text/javascript">
+    {% if deletebt %}
+        document.getElementById("button").disabled = false;
+    {%  else %}
+        document.getElementById("button").disabled = true;
+     {% endif %}
+
+ $(document).ready(
+function(){
+    $('input:submit').attr('disabled',true);
+    $("input[name$='name']").change(
+        function(){
+            if ($(this).val()){
+                $('input:submit').removeAttr('disabled');
+            }
+            else {
+                $('input:submit').attr('disabled',true);
+            }
+        });
+});
+
+
+</script>
+{% endblock %}

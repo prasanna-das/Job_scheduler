@@ -1,0 +1,337 @@
+{% extends "userbase.html" %}
+{% load admin_urls %}
+{% load bootstrap3 %}
+{% block title %}Profile{% endblock %}
+{% block extraHeader %}
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+  <style type="text/css">
+    #pageno {
+    font-weight: italic;
+        font-size: 15px;
+         color: blue;
+
+    }
+
+    .button {
+    background-color: #008CBA;
+    border: none;
+    color: white;
+    padding: 5px 8px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 25px;
+
+}
+
+       </style>
+<<div id="page-wrapper" class="gray-bg  dashbard-1" style="min-height: 287px;">
+    <div class="row wrapper border-bottom page-heading">
+        <nav style="margin-bottom: 0" role="navigation" class="navbar navbar-static-top">
+            <div class="navbar-header">
+                <header class="entry-header">
+                    <h2 class="font-bold" >
+                       <span id="thing_name" itemprop="name">Job Manager</span>
+                    </h2>
+                </header>
+                <ul class="nav navbar-top-links navbar-right">
+                    <li>
+                        <span class="m-r-sm text-muted welcome-message">Use this option to create a new job. Please don't repeatedly press execute button.</span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    {% csrf_token %}
+    <div class="  border-bottom  row ">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                       <h5>CREATE JOB</h5>
+                    </div>
+                    <div class="ibox-content" style="display: block;">
+                        <form id="executeForm" action="/execute_algos/">
+                              {% csrf_token %}
+                            <div class="form-group ">
+                                <label for="file1">File1 : </label>
+                                <select id="file1" name="file1" style="background:transparent;width:150px" onmousedown="file_list(this);"></select>
+                            </div>
+
+                              <div class="form-group">
+                                    <label for="file2" style=" padding-right:.2em">File2 : </label>
+                                    <select id="file2" name="file2" style="background:transparent;width: 150px;" onmousedown="file_list(this);"></select>
+                               </div>
+
+                                <div class="form-group">
+                                     <label for="select_policy">Select Policy: </label>
+                                     <select id="select_policy" name="select_policy" style="background:transparent;width: 150px" onmousedown="get_policy_list(this);">
+                                        <option selected disabled>Policy_id, Severity, Size, Patch_time, Recreation_time</option>
+                                    </select>
+                                </div>
+
+                                 <input type="submit" value="Execute" onclick="submit_form()"/>
+                                  <input id="init_data" type="hidden" value = "{{init_data}}" />
+                                  <input id="type" type="hidden" value = "{{type}}" />
+                        </form>
+                        <div id="executionstatus"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title">
+                        <h5> LIST OF JOBS CREATED </h5>
+                     </div>
+                    <div class="ibox-content text-center p-md">
+                         <div id="dynamictable" class="table-responsive"  ></div>
+                        <span id="pageno">Page</span>
+                        <a href="javascript:prevPage()" id="btn_prev" class="button">Prev</a>
+                        <a href="javascript:nextPage()" id="btn_next" class="button">Next</a>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+<script type="text/javascript">
+
+$(document).ready(function(){
+   var callAjax = function(){
+  $.ajax({
+    method:'get',
+    url:"{% url 'execution_status' %}",
+    success:function(data){
+        out_data =eval(data);
+        if (out_data.length > 0  ){
+            $("#executionstatus").html("Jobs running are" + out_data);
+        }
+        else {
+            $("#executionstatus").html("");
+        }
+    }
+  });
+    }
+    setInterval(callAjax,2000);
+ });
+
+
+var current_page = 1;
+var records_per_page = 2;
+var objJson = null
+var count=1;
+var decr = 0;
+var last_count = 1;
+
+
+function prevPage()
+{
+    if (current_page > 1) {
+        current_page--;
+        changePage(current_page);
+    }
+}
+
+function nextPage()
+{
+    if (current_page < numPages()) {
+        current_page++;
+
+        changePage(current_page);
+    }
+}
+
+function changePage(pagenum)
+{
+      current_page =   pagenum;
+    var btn_next = document.getElementById("btn_next");
+    var btn_prev = document.getElementById("btn_prev");
+    var page_span = document.getElementById("pageno");
+    // Validate page
+    if (current_page < 1) current_page = 1;
+    if (current_page > numPages()) current_page = numPages();
+    $('#dynamictable').empty()
+     $('#dynamictable').append('<table class="table-hover table table-bordered" style="width:70%" border="1"></table>');
+    var table = $('#dynamictable').children();
+
+    table.append("<tr><th>S.No</th><th>ID</th><th>Date</th><th>Files</th><th>Execution Status</th><th></th>/tr>");
+    if( ! objJson.length ) {
+          btn_prev.style.visibility = "hidden";
+          btn_next.style.visibility = "hidden";
+          page_span.style.visibility = "hidden";
+          return false;
+    }
+    for (var i = (current_page-1) * records_per_page; i < (current_page * records_per_page) && i < objJson.length; i++)
+     {
+         serial = i+1
+         xdelta3_status = objJson[i].xdelta3_status=='Passed' ? "xdelta3 Passed" : "<font color="+"red"+">"+"Failed to execute xdelta3"+"</font>"
+        vcdiff_status = objJson[i].vcdiff_status=='Passed'? "vcdiff Passed" : "<font color="+"red"+">"+"Failed to execute vcdiff"+"</font>"
+        bsdiff_status = objJson[i].bsdiff_status=='Passed' ? "bsdiff Passed" : "<font color="+"red"+">"+"Failed to execute bsdiff"+"</font>"
+        table.append("<tr id="+objJson[i].job_id+"><td rowspan="+3+">"+serial+"</td><td rowspan="+3+">"+objJson[i].job_id+"</td><td rowspan="+3+">"+objJson[i].date+"</td><td rowspan="+2+">"+objJson[i].file1+"</td><td>"+xdelta3_status+"</td><td rowspan="+3+">"+"<button id="+objJson[i].job_id+" class=" +"delbtn" +" onclick = 'delete_row(this)'>delete</button>"+"</td></tr><tr><td>"+bsdiff_status+"</td></tr>"+"<tr><td>"+objJson[i].file2+"</td><td>"+vcdiff_status+"</td></tr>");
+
+
+
+     }
+
+    page_span.innerHTML = "Page "+current_page;
+
+
+    if (current_page == 1) {
+        btn_prev.style.visibility = "hidden";
+
+    } else {
+        btn_prev.style.visibility = "visible";
+    }
+
+    if (current_page == numPages()) {
+        btn_next.style.visibility = "hidden";
+    } else {
+        btn_next.style.visibility = "visible";
+    }
+}
+
+function numPages()
+{
+
+    return Math.ceil(objJson.length / records_per_page);
+}
+
+
+
+    csrf = $("input[name='csrfmiddlewaretoken']")[0].value;
+
+    type = document.getElementById('type').value;
+        if (type == "initial"){
+            init_data = document.getElementById('init_data').value;
+            $('#dynamictable').append('<table></table>');
+            var table = $('#dynamictable').children();
+            out_data = eval(init_data);
+            var count = 1;
+           objJson = out_data;
+           changePage(1);
+        }
+
+
+    function delete_row(obj){
+         id = obj.id
+            $.ajax({
+                    type: "POST",
+                    url: "{% url 'delete_job' %}",
+                    data: {
+                        csrfmiddlewaretoken: csrf,
+                        job_id: id,
+                        },
+                    dataType: "json",
+                    success: function (data) {
+                        $(dynamictable).empty();
+                        $('#dynamictable').append('<table></table>');
+                        var table = $('#dynamictable').children();
+                        out_data = data;
+                        var count = 1;
+                        objJson = out_data;
+                        changePage(1);
+
+                    },
+                    error: function (request, error) {
+                        console.log(arguments);
+                        alert(" Can't do because: " + error);
+                    },
+            });
+        }
+
+    function submit_form(){
+            $("#executeForm").submit(function(e)
+            {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                var f1 = document.getElementById("file1");
+                var f2 = document.getElementById("file2");
+                var p1 = document.getElementById("select_policy");
+                if(!f1.options[f1.selectedIndex] || !f2.options[f1.selectedIndex] || p1.selectedIndex == 0) {
+                    alert("Please select file1,file2 or policy");
+                    return false;
+                }
+                var postData = $(this).serializeArray();
+                var formURL = $(this).attr("action");
+                $.ajax(
+                {
+                    url : formURL,
+                    type: "POST",
+                    data : postData,
+                    success:function(data, textStatus, jqXHR)
+                    {
+                        var count =1;
+                        $(dynamictable).empty();
+                        $('#dynamictable').append('<table></table>');
+                        var table = $('#dynamictable').children();
+                        out_data =eval(data);
+                        objJson = out_data;
+                        changePage(1);
+                    },
+
+                });
+
+            });
+
+    }
+
+    function file_list(caller){
+        $.ajax({
+			url:'file_list/',
+			data:{},
+			success: function(output) {
+			    var ele = $(caller).attr('id');
+				data = eval("("+output+")");
+				var titles = data;
+				if (titles == undefined){alert("No Files Uploaded!!!");}
+				else{
+					var titles = jQuery.unique(data);
+					var sel = document.getElementById(ele);
+					$(sel).empty()
+					for(var i = 0; i < titles.length; i++) {
+
+						$('#'+ele).append("<option>"+titles[i]+"</option>")
+						}
+					}
+				}
+		});//ajax close
+    }
+
+    function get_policy_list(caller){
+
+        $.ajax({
+            url:"get_policy_list/",
+            data:{},
+            success: function(output){
+                var policies = $(caller).attr('id');
+                data = eval("("+output+")");
+                var sel = document.getElementById(policies);
+                $(sel).empty()
+                $(sel).append("<option selected disabled>Policy_id, Severity, Size, Patch_time, Recreation_time</option>")
+                for(var i = 0; i < data.length; i++) {
+                   $('#'+policies).append("<option>"+data[i]+"</option>")
+                    }
+                }
+        })
+
+    }
+
+</script>
+{% endblock %}
+
+

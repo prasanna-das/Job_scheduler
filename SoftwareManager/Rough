@@ -1,0 +1,25 @@
+function file_list(){
+        $.ajax({
+			url:'file_list/',
+			data:{},
+			success: function(output) {
+			    var caller = this.id;
+			    alert(caller);
+				data = eval("("+output+")");
+				var titles = data;
+				if (titles == undefined){alert("No Files Uploaded!!!");}
+				else{
+					var titles = jQuery.unique(data);
+					var sel = document.getElementById('file1_list');
+					for(var i = 0; i < titles.length; i++) {
+						var opt = document.createElement('option');
+						opt.innerHTML = titles[i];
+						opt.value = titles[i];
+						opt.id = titles[i];
+						sel.appendChild(opt);
+						}
+					}
+				}
+
+		});//ajax close
+    }

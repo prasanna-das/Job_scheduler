@@ -1,0 +1,10 @@
+*.pyc
+JobManager/*.pyc
+report/*.pyc
+SoftwareManager/*.pyc
+advanced_delta/*.pyc
+chunked_upload_custom/*pyc
+custom_registration/*.pyc
+db.sqlite3
+policy_manager/*.pyc
+util/*.pyc

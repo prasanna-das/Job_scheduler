@@ -1,0 +1,714 @@
+{% extends "userbase.html" %}
+{% load admin_urls %}
+{% load bootstrap3 %}
+{% block title %}Report{% endblock %}
+{% block extraHeader %}
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js" xmlns="http://www.w3.org/1999/html"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        table{border:1px solid #000;}
+        table td{padding:5px;border:1px solid #000;}
+        table th{background:#CCC;padding:15px;border:1px solid #000;}
+
+        svg{
+            background-color: antiquewhite;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .axis path,
+        .axis line {
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+
+        .axis text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+        .box{
+            float:left;
+            width:48%;
+            margin:0 auto;
+    }
+    </style>
+
+{% endblock %}
+
+{% block content %}
+    <div id="page-wrapper" class="white-bg" style="color:black;">
+        {% csrf_token %}
+       <div class="jumbotron">
+          <div class="container">
+            <h2><b>Idelta  Analysis</b></h2>
+
+            <p>Use this option to show job execution detail report. </p>
+           </div><!-- /.container -->
+       </div><!-- /.jumbotron -->
+
+        <div style="border:1px solid black">
+            <label for="select_job_id">Select Job: </label>
+            <select id="select_job_id" name="select_job_id" style="background:transparent;"  onchange="get_job_details(this);"></select>
+            <input id="init_data" type="hidden" value = "{{init_data}}" />
+            <input id="type" type="hidden" value = "{{type}}" /></br></br>
+
+        </div>
+
+        </br>
+
+        <div id="report_table" style="border:1px solid black">
+            <h4 style='background-color:lightgrey; text-align: center; padding: 5px; width: 98%; ' >iDelta Analysis Report of Job </h4>
+
+            <label for="date" style="padding-right:3.5em"> Date : </label>
+            <input id="date" type="text" name="date" />
+            <label for="severity"  style=" padding-left:5em">Severity : </label>
+            <input id="severity" type="text" name="severity"/><br><br>
+
+            <label for="original_file"> Original File : </label>
+            <input id="original_file" type="text"    name="original_file"/>
+            <label for="priority" style=" padding-left:5em">Priority : </label>
+            <input id="priority" type="text" name="priority" style="width: 200px"/><br><br>
+            <label for="new_file" style="padding-right:1em"> New File : </label>
+            <input id="new_file" type="text" name="new_file"/>
+            <div  id="error_message" style="position: absolute; top: 200px;right:60px; width: 200px; height: 100px; color: red;">
+            </div>
+
+        </div>
+
+        </br>
+
+        <div  id = "benchamrk" style="margin-left: auto; margin-right: auto; border:1px solid black">
+            <h4 style='background-color:lightgrey; text-align: center; padding: 5px; width: 98%; ' >Benchmark Results </h4>
+            <div id="benchmark_results">
+            <table>
+                <tr>
+                    <th>Tool</th><th>Size</th><th>Patch Time</th><th>Recreation Time</th>
+                </tr>
+
+                <tr>
+                    <td>XDelta</td><td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td>BSdiff</td><td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td>Open VCdiff</td><td></td><td></td><td></td>
+                </tr>
+            </table>
+                </div>
+
+        </div>
+
+        </br>
+
+
+        <div id="graphs" style="margin-left: auto; margin-right: auto; border:1px solid black; width: 100%;">
+            <table>
+                <tr>
+                    <td>
+                        <div id="delta_tools" type="hidden" name="new_file"></div>
+                        <div id="columnchart_values" class="box"></div>
+                    </td>
+                    <td>
+                        <div id="delta_size_chart" class="box"></div>
+                    </td>
+                    <td>
+                        <div id="delta_recreation_chart" class="box"></div>
+                    </td>
+                </tr>
+            </table>
+        </div></br></br>
+
+
+
+        <div id="idelta_summary" style="margin-left: auto; margin-right: auto; border:1px solid black;">
+            <h4 style='background-color:lightgrey; text-align: center; padding: 5px; width: 98%; ' >IDelta Summary </h4>
+                <label for="tool"> Select Tool: </label>
+                <select id="tool" name="tool" style="background:transparent;"  onchange="get_tool_report(this);" >
+                        <option hidden="true">Please select tool</option>
+                        <option value="xdelta3">xdelta3</option>
+                        <option value="bsdiff">bsdiff</option>
+                        <option value="vcdiff">vcdiff</option> ></select>
+
+            <label for="idelta_original_file">Original File : </label>
+            <input id="idelta_original_file" type="text" name="idelta_original_file"/>
+            <label for="idelta_original_size"  style=" padding-left:5em">Size : </label>
+            <input id="idelta_original_size" type="text" name="idelta_original_size"/><br><br>
+
+            <label for="idelta_new_file" style="padding-right:1.8em">New File : </label>
+            <input id="idelta_new_file" type="text" name="idelta_new_file"/>
+            <label for="idelta_new_size"  style=" padding-left:5em">Size : </label>
+            <input id="idelta_new_size" type="text" name="idelta_new_size"/><br><br>
+
+            <label for="patch_tool" style="padding-right:0.9em">Patch Tool : </label>
+            <input id="patch_tool" type="text" name="patch_tool" style="font-weight: bold" value="XDELTA3"/></br></br>
+            <label for="patch_file_name" style="padding-right:1.2em">Patch File : </label>
+            <input id="patch_file_name" type="text" name="patch_file_name"/>
+
+                <a href="#" class="btn btn-info" id="downloadpatchfile" role="button"  onclick="downloadfile()">Download</a>
+
+            <label for="patch_size"  style=" padding-right:1em">Patch Size : </label>
+            <input id="patch_size" type="text" name="patch_size"/><br><br>
+
+            <label for="estimated_patch_time" style="padding-right:2em">Estimated Transmission Time : </label>
+            <input id="estimated_patch_time" type="text" name="estimated_patch_time"/>
+            <label>for 1 Mbps </label><br><br>
+
+            <label for="estimated_reconstruction_time">Estimated Reconstruction Time : </label>
+            <input id="estimated_reconstruction_time" type="text" name="estimated_reconstruction_time" />
+
+            </div>
+
+
+        <!-- <div id="dyna_table" style="margin-left: auto; margin-right: auto"></div></br> -->
+
+    </div>
+</div>
+<script type="text/javascript">
+function downloadfile() {
+  <!--alert("entered in downloadfile");-->
+  filedetails = $('#downloadpatchfile').val();
+		   fileinfo = filedetails.split(" " );
+		   <!--alert(filedetails);-->
+		      dwurl='report/downloadfile' + filedetails;
+		       document.getElementById("downloadpatchfile").href= '/downloadfile?' + "filedata=" + filedetails;
+}
+
+    googleMapsLoaded = false;
+
+    csrf = $("input[name='csrfmiddlewaretoken']")[0].value;
+
+    type = document.getElementById('type').value;
+    if (type == "initial"){
+        var titles = document.getElementById('init_data').value;
+        data = eval("("+titles+")");
+        if (data == undefined){alert("No Jobs Created!!!");}
+        else{
+            var data = jQuery.unique(data);
+            var sel = document.getElementById(select_job_id);
+            $("#select_job_id").empty()
+            $("#select_job_id").append("<option selected disabled>Date, JobId, File1, File2</option>")
+            for(var i = 0; i < data.length; i++) {
+                $("#select_job_id").append("<option value='"+data[i]+"'>"+data[i]+"</option>")
+                }
+            }
+            document.getElementById('priority').value = "";
+            document.getElementById('severity').value = "";
+            document.getElementById('date').value = "";
+            document.getElementById('original_file').value = "";
+            document.getElementById('new_file').value = "";
+            document.getElementById('idelta_original_size').value = "";
+
+            document.getElementById('idelta_new_size').value ="";
+
+
+            document.getElementById('patch_size').value = "";
+
+
+            document.getElementById('estimated_patch_time').value ="";
+
+
+            document.getElementById('estimated_reconstruction_time').value = "";
+
+            document.getElementById('idelta_original_file').value = "";
+            document.getElementById('idelta_new_file').value = "";
+            document.getElementById('patch_tool').value = "";
+            document.getElementById('patch_file_name').value = "";
+            document.getElementById('tool').selectedIndex = "0";
+
+}
+
+function get_tool_report(caller){
+
+
+        var toolslist = $('select#tool');
+        var tool = $('option:selected', toolslist).val();
+        <!--alert(tool);-->
+         var joblist = $('select#select_job_id');
+        var id_data = $('option:selected', joblist).val();
+        <!--alert(id_data);-->
+        var id_arr = id_data.split(',')
+        id = id_arr[1];
+        <!--alert(id);-->
+        <!---->
+          $.ajax({
+             type: "POST",
+             url:'generate_report/',
+             data:{
+                 csrfmiddlewaretoken: csrf,
+                 dat_val : id_data, },
+             dataType: "json",
+                success: function(output) {
+                    var data = output ;
+                    var iDelta_Summary_list = JSON.parse(data[id].iDelta_Summary);
+                    <!--if (tool == 'xdelta3') {-->
+                        <!--iDelta_Summary = iDelta_Summary_list[1];-->
+                        <!--iDelta_Summary['patch_tool']-->
+                    <!--}-->
+                    <!--else if (tool == 'bsdiff') {-->
+                        <!--iDelta_Summary = iDelta_Summary_list[0];-->
+                    <!--}-->
+                     <!--else if (tool == 'vcdiff') {-->
+                                <!--iDelta_Summary = iDelta_Summary_list[2];-->
+                    <!--}-->
+                                        <!--alert(JSON.stringify(iDelta_Summary_list));-->
+                   for(var i = 0; i < iDelta_Summary_list.length; i++) {
+                        delta_details = iDelta_Summary_list[i];
+                        if (delta_details['patch_tool'] == tool) {
+                            iDelta_Summary = delta_details;
+                        }
+                   }
+
+                  var file1_size = iDelta_Summary['orig_file_size'];
+                  var idelta_original_size = document.getElementById('idelta_original_size');
+                  idelta_original_size.disabled=false
+                  idelta_original_size.value = file1_size;
+                  idelta_original_size.disabled=true
+
+                    var file2_size = iDelta_Summary['new_file_size'];
+                    var idelta_new_size = document.getElementById('idelta_new_size')
+                    idelta_new_size.disabled=false
+                    idelta_new_size.value = file2_size;
+                    idelta_new_size.disabled=true
+
+                     var patch_size = document.getElementById('patch_size')
+                     patch_size.disabled=false
+                     patch_size.value = humanFileSize(iDelta_Summary['patch_size']);
+                     patch_size.disabled=true
+
+                    var estimated_patch_time = document.getElementById('estimated_patch_time')
+                    estimated_patch_time.disabled=false
+                    estimated_patch_time.value = iDelta_Summary['patch_time'];
+                    estimated_patch_time.disabled=true
+
+                    var estimated_reconstruction_time = document.getElementById('estimated_reconstruction_time')
+                    estimated_reconstruction_time.disabled=false
+                    estimated_reconstruction_time.value = iDelta_Summary['recreation_time'];
+                    estimated_reconstruction_time.disabled=true
+
+                    var idelta_original_file = document.getElementById('idelta_original_file')
+                    idelta_original_file.disabled=false
+                    idelta_original_file.value = iDelta_Summary['orig_file'];
+                    idelta_original_file.disabled=true
+
+                    var idelta_new_file = document.getElementById('idelta_new_file')
+                    idelta_new_file.disabled=false
+                    idelta_new_file.value = iDelta_Summary['new_file'];
+                    idelta_new_file.disabled=true
+
+                    var patch_tool = document.getElementById('patch_tool')
+                    patch_tool.disabled=false
+                    patch_tool.value = iDelta_Summary['patch_tool'];
+                    patch_tool.disabled=true
+
+                   var patch_file_name = document.getElementById('patch_file_name')
+                   patch_file_name.disabled=true
+                   patch_file_name.value = iDelta_Summary['patch_file'];
+                   patch_file_name.disabled=true
+
+                    filedetails= iDelta_Summary['patch_tool'] + ' ' + id + ' ' + iDelta_Summary['patch_file'];
+                    $('#downloadpatchfile').val(filedetails);
+                        cookieValue = $("#downloadpatchfile").val();
+                        <!--alert(filedetails);-->
+                        <!--alert(cookieValue);-->
+
+                 }
+            });
+
+        <!--var iDelta_Summary = JSON.parse(data[id].iDelta_Summary)[0];-->
+        <!--alert(iDelta_Summary);-->
+     }
+
+
+    function get_job_details(caller){
+
+
+        var joblist = $('select#select_job_id');
+        var id_data = $('option:selected', joblist).val();
+
+        var id_arr = id_data.split(',')
+        id = id_arr[1];
+        var date = document.getElementById('date');
+        date.disabled = false;
+        date.value = id_arr[0];
+        date.disabled = true;
+        var original_file = document.getElementById('original_file');
+        original_file.disabled = false;
+        original_file.value = id_arr[2];
+        original_file.disabled=true;
+        var new_file = document.getElementById('new_file');
+        new_file.disabled=false;
+        new_file.value = id_arr[3];
+        new_file.disabled=true;
+        //document.getElementById('idelta_original_file').value = id_arr[2]
+        //document.getElementById('idelta_new_file').value = id_arr[3]
+         $.ajax({
+             type: "POST",
+             url:'generate_report/',
+             data:{
+                 csrfmiddlewaretoken: csrf,
+                 dat_val : id_data, },
+             dataType: "json",
+             success: function(output) {
+                    var data = output;
+                    var tools = data[id].Tools;
+                    $("#benchmark_results").empty()
+                    //$('#benchmark_results').append("<h4 style='background-color:lightgrey; text-align: center; padding: 5px; width: 98%; ' >Benchmark Results </h4>");
+                    $('#benchmark_results').append('<table></table>');
+                    var table = $('#benchmark_results').children();
+                    table.append("<tr><th>Tool</th><th>Size</th><th>Patch Time</th><th>Recreation Time</th><tr>");
+                    for(k in tools)
+                    {
+                        size = ( typeof tools[k].delta_size == "undefined" || tools[k].delta_size === null ) ? "None": humanFileSize(tools[k].delta_size)   ;
+                        delta_time = ( tools[k].delta_time == "undefined" || tools[k].delta_time === null ) ?  "None" : tools[k].delta_time+" Secs " ;
+                        recreation_time =( tools[k].recreation_time == "undefined" || tools[k].recreation_time === null) ? "None": tools[k].recreation_time+" Secs " ;
+                        var row = "<tr><td>"+k+"</td><td>"+size+"</td><td>"+delta_time+"</td><td>"+recreation_time+"</td></tr>";
+                        table.append(row);
+
+                    }
+
+                    var policy_details = JSON.parse(data[id].policy_details)[0];
+                    var severity = document.getElementById('severity');
+                     severity.disabled=false
+                     severity.value = policy_details['severity'];
+                     severity.disabled=true
+                    var priority_data = "size: "+policy_details['size']+", Patch Time: "+policy_details['patch_time']+", Reconstruction Time: "+policy_details['reconstruction_time']
+                    var priority = document.getElementById('priority');
+                    priority.disabled=false
+                    priority.value = priority_data;
+                    priority.disabled=true
+                    error = ""
+                    document.getElementById('error_message').innerHTML = error
+                    if (! data[id]["vcdiff_status"]) {
+                        error += "Vcdiff execution failed";
+                        document.getElementById('error_message').innerHTML = error
+                     }
+                      if (! data[id]["xdelta3_status"]) {
+
+                            error += "xdelta3 execution failed";
+                            document.getElementById('error_message').innerHTML  = error
+                       }
+                      if (! data[id]["bsdiff_status"]) {
+                            error += "bsdiff execution failed";
+                            document.getElementById('error_message').innerHTML = error
+                     }
+                     error = ""
+                    var iDelta_Summary_list = JSON.parse(data[id].iDelta_Summary);
+                                  for(var i = 0; i < iDelta_Summary_list.length; i++) {
+                        delta_details = iDelta_Summary_list[i];
+                        if (delta_details['patch_tool'] == 'xdelta3') {
+                            var iDelta_Summary = delta_details;
+                            break;
+                        }
+                   }
+                   document.getElementById('tool').selectedIndex = "1";
+                  var file1_size = iDelta_Summary['orig_file_size'];
+                  var idelta_original_size = document.getElementById('idelta_original_size');
+                  idelta_original_size.disabled=false
+                  idelta_original_size.value = file1_size;
+                  idelta_original_size.disabled=true
+
+                    var file2_size = iDelta_Summary['new_file_size'];
+                    var idelta_new_size = document.getElementById('idelta_new_size');
+                    idelta_new_size.disabled=false;
+                    idelta_new_size.value = file2_size;
+                    idelta_new_size.disabled=true;
+
+                     var patch_size = document.getElementById('patch_size')
+                     patch_size.disabled=false
+                     patch_size.value = humanFileSize(iDelta_Summary['patch_size']);
+                     patch_size.disabled=true
+
+                    var estimated_patch_time = document.getElementById('estimated_patch_time')
+                    estimated_patch_time.disabled=false
+                    estimated_patch_time.value = iDelta_Summary['patch_time'];
+                    estimated_patch_time.disabled=true
+
+                    var estimated_reconstruction_time = document.getElementById('estimated_reconstruction_time')
+                    estimated_reconstruction_time.disabled=false
+                    estimated_reconstruction_time.value = iDelta_Summary['recreation_time'];
+                    estimated_reconstruction_time.disabled=true
+
+                    var idelta_original_file = document.getElementById('idelta_original_file')
+                    idelta_original_file.disabled=false
+                    idelta_original_file.value = iDelta_Summary['orig_file'];
+                    idelta_original_file.disabled=true
+
+                    var idelta_new_file = document.getElementById('idelta_new_file')
+                    idelta_new_file.disabled=false
+                    idelta_new_file.value = iDelta_Summary['new_file'];
+                    idelta_new_file.disabled=true
+
+                    var patch_tool = document.getElementById('patch_tool')
+                    patch_tool.disabled=false
+                    patch_tool.value = iDelta_Summary['patch_tool'];
+                    patch_tool.disabled=true
+
+                   var patch_file_name = document.getElementById('patch_file_name')
+                   patch_file_name.disabled=true
+                   patch_file_name.value = iDelta_Summary['patch_file'];
+                   patch_file_name.disabled=true
+
+                    <!--document.getElementById("downloadfile").href = 'downlolad_attachment' + '/' + iDelta_Summary['patch_tool'] + '/' + id + '/' + iDelta_Summary['patch_file'];-->
+                    filedetails= iDelta_Summary['patch_tool'] + ' ' + id + ' ' + iDelta_Summary['patch_file']
+                    $('#downloadpatchfile').val(  filedetails);
+                        var cookieValue = document.getElementById("downloadpatchfile").value;
+
+                    <!--alert(filedetails);-->
+                                            <!--alert(cookieValue);-->
+
+                    //alert(data[id].date);
+                    //frame_table(data);
+
+                    var graph1 = data[id].graph;
+                    g = {"key" : graph1}
+                    $('#delta_tools').data('myval',g);
+                    if (!googleMapsLoaded) {
+                        google.charts.load('current', {packages:['corechart']});
+                    }
+                    google.charts.setOnLoadCallback(drawChart);
+
+                  }
+         });
+
+    }
+
+        function drawChart() {
+         googleMapsLoaded = true;
+
+          var  a = $('#delta_tools').data('myval');
+
+          var data = google.visualization.arrayToDataTable(a.key[0]);
+
+          var data1 = google.visualization.arrayToDataTable(a.key[1]);
+
+          var data2 = google.visualization.arrayToDataTable(a.key[2]);
+
+          var view = new google.visualization.DataView(data);
+          var view1 = new google.visualization.DataView(data1);
+          var view2 = new google.visualization.DataView(data2);
+
+          view.setColumns([0, 1,
+                           {
+                             sourceColumn: 1,
+                             type: "number",
+                             role: "annotation" },
+                           2]);
+
+          view1.setColumns([0, 1,
+                           {
+                             sourceColumn: 1,
+                             type: "number",
+                             role: "annotation" },
+                           2]);
+
+          view2.setColumns([0, 1,
+                           {
+                             sourceColumn: 1,
+                             type: "number",
+                             role: "annotation" },
+                           2]);
+
+          var options = {
+            title: "Delta Time in Seconds",
+            width: 300,
+            height: 250,
+            bar: {groupWidth: "95%"},
+            legend: { position: "none" },
+            vAxis:{viewWindow: {min: 0}},
+          };
+
+          var options1 = {
+            title: "Delta Size in Bytes",
+            width: 300,
+            height: 250,
+            bar: {groupWidth: "95%"},
+            legend: { position: "none" },
+            vAxis:{viewWindow: {min: 0}},
+          };
+
+          var options2 = {
+            title: "Recreation time in Seconds",
+            width: 300,
+            height: 250,
+            bar: {groupWidth: "95%"},
+            legend: { position: "none" },
+            vAxis:{viewWindow: {min: 0}},
+          };
+          var chart = new google.visualization.ColumnChart(document.getElementById("columnchart_values"));
+          chart.draw(view, options);
+
+          var chart1 = new google.visualization.ColumnChart(document.getElementById("delta_size_chart"));
+          chart1.draw(view1, options1);
+
+           var chart2 = new google.visualization.ColumnChart(document.getElementById("delta_recreation_chart"));
+          chart2.draw(view2, options2);
+        }
+
+    function frame_table(data){
+        var len = Object.keys(data).length;
+        $('#dyna_table').append('<table></table>');
+        var table = $('#dyna_table').children();
+        var count = 1;
+        $.each(data, function(){
+           span_count = Object.keys(this.Tools).length;
+           var tool_list = Object.keys(this.Tools);
+           counter = 1;
+            var resp = this.Tools;
+            var rep_row =  "<tr><td rowspan="+span_count+">"+len+"</td><td rowspan="+span_count+">"+this.date+"</td> <td rowspan="+span_count+">"+this.job_id+"</td> "
+            for(k in resp)
+            {
+
+
+                if (span_count == 1){
+                        var rep_row =  "<tr><td rowspan="+2+">"+len+"</td><td rowspan="+2+">"+this.date+"</td> <td rowspan="+2+">"+this.job_id+"</td><td>"+this.file1.name+"</td> <td>"+humanFileSize(this.file1.size)+"</td><td rowspan="+2+">"+tool_list[0]+"</td>"
+                        append_text = rep_row+"<td rowspan="+2+">"+humanFileSize(resp[k].delta_size)+"</td><td rowspan="+2+">"+resp[k].delta_time+"</td><td rowspan="+2+">"+resp[k].recreation_time+"</td><td rowspan="+2+">"+"<button id="+this.job_id+" class=" +"delbtn" +" onclick = 'delete_row(this)' >delete</button>"+"</td></tr>"
+                        second_row = "<tr><td>"+this.file2.name+"</td><td>"+humanFileSize(this.file2.size)+"</td></tr>";
+                        rep_row = append_text+second_row;
+                        }
+
+
+                else if (span_count == 2){
+                         if (counter == 1){
+                            append_text = "<td>"+this.file1.name+"</td> <td>"+humanFileSize(this.file1.size)+"</td><td>"+tool_list[0]+"</td>"+"<td>"+humanFileSize(resp[k].delta_size)+"</td><td>"+resp[k].delta_time+"</td><td>"+resp[k].recreation_time+"</td><td rowspan="+2+">"+"<button id="+this.job_id+" class=" +"delbtn" +" onclick = 'delete_row(this)' >delete</button>"+"</td></tr>"
+                            rep_row = rep_row+append_text;
+                        }
+                        if (counter == 2){
+                            append_second = "<tr><td>"+this.file2.name+"</td><td>"+humanFileSize(this.file2.size)+"</td><td>"+k+"</td><td>"+humanFileSize(resp[k].delta_size)+"</td><td>"+resp[k].delta_time+"</td><td>"+resp[k].recreation_time+"</td></tr>";
+                            rep_row = rep_row+append_second;
+                            }
+
+                        }
+
+
+                else if (span_count == 3){
+                        first_row = "<td rowspan="+2+">"+this.file1.name+"</td> <td rowspan="+2+">"+humanFileSize(this.file1.size)+"</td><td>"+tool_list[0]+"</td>"
+                        if (counter == 1){
+                            append_text = "<td>"+humanFileSize(resp[k].delta_size)+"</td><td>"+resp[k].delta_time+"</td><td>"+resp[k].recreation_time+"</td><td rowspan="+3+">"+"<button id="+this.job_id+" class=" +"delbtn" +" onclick = 'delete_row(this)' >delete</button>"+"</td></tr>"
+                            rep_row = rep_row+first_row+append_text;
+                        }
+                        if (counter == 2){
+                            append_second = "<tr><td>"+k+"</td><td>"+humanFileSize(resp[k].delta_size)+"</td><td>"+resp[k].delta_time+"</td><td>"+resp[k].recreation_time+"</td></tr>";
+                            rep_row = rep_row+append_second;
+                            }
+                        if (counter == 3){
+                            append_third = "<tr><td>"+this.file2.name+"</td><td>"+humanFileSize(this.file2.size)+"</td><td>"+k+"</td><td>"+humanFileSize(resp[k].delta_size)+"</td><td>"+resp[k].delta_time+"</td><td>"+resp[k].recreation_time+"</td></tr>";
+                            rep_row = rep_row+append_third}
+               }
+            counter++;
+            }
+
+
+           table.prepend(rep_row);
+           len--;
+        });
+            table.prepend("<tr><th>S.No</th><th>Date</th><th>Job ID</th><th>Files</th><th>File Size</th></th><th>Delta Tool</th><th>Delta Size</th><th>Time to Delta</th><th>Time to reacreate</th><th></th></tr>");
+
+    }
+
+
+    function delete_row(event){
+        id = $(event).attr('id');
+        $.ajax({
+                type: "POST",
+                url: "{% url 'delete_report' %}",
+                    data: {
+                    csrfmiddlewaretoken: csrf,
+                    job_id: id,
+                    },
+                dataType: "json",
+                success: function (data) {
+                    $(dyna_table).empty();
+                    frame_table(data);
+
+
+                    },
+                error: function (request, error) {
+                    console.log(arguments);
+                    alert(" Can't do because: " + error);
+                },
+        });
+    }
+    function humanFileSize(size) {
+            var i = Math.floor( Math.log(size) / Math.log(1024) );
+            return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+    };
+
+    /*
+
+    $.ajax({
+        url:'generate_report/',
+        data:{},
+        success: function(output) {
+            var data = JSON.parse(output);
+            frame_table(data);
+        }
+    });//ajax close
+    */
+
+        /*
+        report = {
+
+            23: {
+                "date": "Fri Feb 05",
+                "file2": {"name": "bbb", "size": "1827 Bytes"},
+                "file1": {"name": "aaa", "size": "15879 Bytes"},
+                "Tools": {
+                    "Delta": {"delta_time": "10min", "recreation_time": "12min", "delta_size": "1024bytes"},
+                    "BsDiff": {"delta_time": "10min", "recreation_time": "12min", "delta_size": "1024bytes"}
+                    },
+                "job_id": 23
+                },
+            24: {
+                "date": "Fri Feb 08",
+                "file2": {"name": "bbb", "size": "1827 Bytes"},
+                "file1": {"name": "aaa", "size": "15879 Bytes"},
+                "Tools": {
+                    "Delta": {"delta_time": "10min", "recreation_time": "12min", "delta_size": "1024bytes"},
+                    },
+                "job_id": 24
+                },
+            16:{
+                date: "03.02.2016",
+                job_id: "15",
+                file1: {
+                        name: "test1",
+                        size: "2 MB",
+                        },
+                file2: {
+                        name: "test2",
+                        size: "2.5 MB",
+                        },
+                Tools:{
+                        bsdiff : {
+                                delta_size: "100 KB",
+                                delta_time: "10 min",
+                                recreation_time: "10 min",
+                        },
+                        Delta : {
+                                delta_size: "120 KB",
+                                delta_time: "12 min",
+                                recreation_time: "8 min",
+                        },
+                        openvc : {
+                                delta_size: "200 KB",
+                                delta_time: "15 min",
+                                recreation_time: "12 min",
+                        },
+
+                }
+            }
+        };
+        data = eval(report);
+
+            graph = "{{Tools}}";
+    <!--alert(graph);-->
+    $.each(graph, function(i, item) {
+        alert(item.tool);
+    });
+
+        */
+
+ </script>
+{% endblock %}
